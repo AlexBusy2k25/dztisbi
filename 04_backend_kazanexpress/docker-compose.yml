@@ -1,0 +1,30 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: kazanexpress
+      POSTGRES_USER: kazanexpress
+      POSTGRES_PASSWORD: kazanexpress
+    ports:
+      - "5435:5432"
+    volumes:
+      - postgres_data_kazanexpress:/var/lib/postgresql/data
+
+  app:
+    build: .
+    depends_on:
+      - postgres
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: kazanexpress
+      POSTGRES_USER: kazanexpress
+      POSTGRES_PASSWORD: kazanexpress
+    ports:
+      - "8003:8000"
+
+volumes:
+  postgres_data_kazanexpress:
+

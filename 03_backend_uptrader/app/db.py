@@ -4,7 +4,6 @@ from typing import Generator
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, declarative_base, sessionmaker
 
-
 POSTGRES_HOST = os.getenv("POSTGRES_HOST", "localhost")
 POSTGRES_PORT = os.getenv("POSTGRES_PORT", "5432")
 POSTGRES_DB = os.getenv("POSTGRES_DB", "uptrader")
@@ -28,4 +27,3 @@ def get_db() -> Generator[Session, None, None]:
         yield db
     finally:
         db.close()
-

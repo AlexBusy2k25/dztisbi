@@ -14,4 +14,3 @@ class MenuItem(Base):
     parent_id = Column(Integer, ForeignKey("menu_items.id"), nullable=True)
 
     children = relationship("MenuItem")
-

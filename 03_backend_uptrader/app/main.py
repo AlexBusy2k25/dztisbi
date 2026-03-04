@@ -7,7 +7,6 @@ from sqlalchemy.orm import Session
 
 from . import db, models, schemas
 
-
 app = FastAPI(
     title="UpTrader Menu Service",
     description="Упрощённый сервис древовидного меню (по мотивам тестового UpTrader).",
@@ -59,4 +58,3 @@ def get_menu(menu_name: str, database: Session = Depends(db.get_db)):
 
     roots = [build_node(item) for item in by_parent.get(None, [])]
     return roots
-

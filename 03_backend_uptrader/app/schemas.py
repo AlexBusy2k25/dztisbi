@@ -21,4 +21,3 @@ class MenuItemNode(BaseModel):
 
 
 MenuItemNode.model_rebuild()
-

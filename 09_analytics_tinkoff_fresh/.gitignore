@@ -1,0 +1,18 @@
+# Создаём .gitignore внутри 09
+@"
+# Виртуальное окружение
+.venv/
+venv/
+ENV/
+
+# Python кэш
+__pycache__/
+*.pyc
+
+# IDE
+.idea/
+.vscode/
+"@ | Out-File -FilePath 09_analytics_tinkoff/.gitignore -Encoding UTF8
+
+# Добавляем его в Git
+git add 09_analytics_tinkoff/.gitignore

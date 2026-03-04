@@ -1,15 +1,12 @@
-from collections import defaultdict
-from typing import Dict, List
-
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from . import db, models, schemas
 
 app = FastAPI(
-    title="UpTrader Menu Service",
-    description="Упрощённый сервис древовидного меню (по мотивам тестового UpTrader).",
+    title="UpTrader API",
+    description="API для управления задачами",
 )
 
 
@@ -18,43 +15,78 @@ def on_startup() -> None:
     models.Base.metadata.create_all(bind=db.engine)
 
 
-@app.post("/menu-items/", response_model=schemas.MenuItemNode)
-def create_menu_item(
-    payload: schemas.MenuItemCreate,
-    database: Session = Depends(db.get_db),
-):
-    instance = models.MenuItem(
-        name=payload.name,
-        url=payload.url,
-        menu_name=payload.menu_name,
-        parent_id=payload.parent_id,
+def create_task_in_db(database: Session, task_data: schemas.TaskCreate) -> models.Task:
+    """Создаёт задачу в БД"""
+    instance = models.Task(
+        title=task_data.title,
+        description=task_data.description,
+        status=task_data.status or "pending",
     )
     database.add(instance)
     database.commit()
     database.refresh(instance)
-    return schemas.MenuItemNode.model_validate(instance)
+    return instance
 
 
-@app.get("/menus/{menu_name}", response_model=List[schemas.MenuItemNode])
-def get_menu(menu_name: str, database: Session = Depends(db.get_db)):
-    stmt = select(models.MenuItem).where(models.MenuItem.menu_name == menu_name)
-    items = database.execute(stmt).scalars().all()
+def get_task_or_404(database: Session, task_id: int) -> models.Task:
+    """Возвращает задачу или 404"""
+    task = database.get(models.Task, task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return task
 
-    by_parent: Dict[int | None, List[models.MenuItem]] = defaultdict(list)
-    lookup: Dict[int, models.MenuItem] = {}
 
-    for item in items:
-        lookup[item.id] = item
-        by_parent[item.parent_id].append(item)
+@app.post("/tasks/", response_model=schemas.TaskResponse, status_code=201)
+def create_task(
+        payload: schemas.TaskCreate,
+        database: Session = Depends(db.get_db),
+):
+    task = create_task_in_db(database, payload)
+    return schemas.TaskResponse.model_validate(task)
 
-    def build_node(model: models.MenuItem) -> schemas.MenuItemNode:
-        children = [build_node(child) for child in by_parent.get(model.id, [])]
-        return schemas.MenuItemNode(
-            id=model.id,
-            name=model.name,
-            url=model.url,
-            children=children,
-        )
 
-    roots = [build_node(item) for item in by_parent.get(None, [])]
-    return roots
+@app.get("/tasks/", response_model=list[schemas.TaskResponse])
+def list_tasks(
+        skip: int = 0,
+        limit: int = 100,
+        database: Session = Depends(db.get_db),
+):
+    stmt = select(models.Task).offset(skip).limit(limit)
+    tasks = database.execute(stmt).scalars().all()
+    return [schemas.TaskResponse.model_validate(task) for task in tasks]
+
+
+@app.get("/tasks/{task_id}", response_model=schemas.TaskResponse)
+def get_task(
+        task_id: int,
+        database: Session = Depends(db.get_db),
+):
+    task = get_task_or_404(database, task_id)
+    return schemas.TaskResponse.model_validate(task)
+
+
+@app.put("/tasks/{task_id}", response_model=schemas.TaskResponse)
+def update_task(
+        task_id: int,
+        payload: schemas.TaskUpdate,
+        database: Session = Depends(db.get_db),
+):
+    task = get_task_or_404(database, task_id)
+
+    for field, value in payload.dict(exclude_unset=True).items():
+        setattr(task, field, value)
+
+    database.commit()
+    database.refresh(task)
+    return schemas.TaskResponse.model_validate(task)
+
+
+@app.delete("/tasks/{task_id}", status_code=204)
+def delete_task(
+        task_id: int,
+        database: Session = Depends(db.get_db),
+):
+    task = get_task_or_404(database, task_id)
+    database.delete(task)
+    database.commit()
+    return None

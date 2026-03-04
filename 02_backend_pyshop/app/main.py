@@ -15,21 +15,27 @@ def on_startup() -> None:
     models.Base.metadata.create_all(bind=db.engine)
 
 
+def create_printer_in_db(database: Session, printer_data: schemas.PrinterCreate) -> models.Printer:
+    """Создаёт принтер в БД"""
+    instance = models.Printer(
+        name=printer_data.name,
+        api_key=printer_data.api_key,
+        check_type=printer_data.check_type,
+        point_id=printer_data.point_id,
+    )
+    database.add(instance)
+    database.commit()
+    database.refresh(instance)
+    return instance
+
+
 @app.post("/printers/", response_model=schemas.PrinterResponse)
 def create_printer(
     payload: schemas.PrinterCreate,
     database: Session = Depends(db.get_db),
 ):
-    instance = models.Printer(
-        name=payload.name,
-        api_key=payload.api_key,
-        check_type=payload.check_type,
-        point_id=payload.point_id,
-    )
-    database.add(instance)
-    database.commit()
-    database.refresh(instance)
-    return schemas.PrinterResponse.model_validate(instance)
+    printer = create_printer_in_db(database, payload)
+    return schemas.PrinterResponse.model_validate(printer)
 
 
 @app.post("/orders/", response_model=list[schemas.CheckResponse])
@@ -44,12 +50,12 @@ def create_order_checks(
     if not printers:
         raise HTTPException(status_code=400, detail="No printers for this point")
 
-    checks: list[models.Check] = []
+    checks = []
     for printer in printers:
         item = models.Check(
             printer_id=printer.id,
             type=printer.check_type,
-            order_payload=payload.payload.__repr__(),
+            order_payload=str(payload.payload),
         )
         database.add(item)
         checks.append(item)

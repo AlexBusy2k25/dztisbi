@@ -7,7 +7,6 @@ from sqlalchemy.orm import Session
 
 from . import db, models
 
-
 app = FastAPI(
     title="AppBooster Experiments API",
     description="Упрощённый сервис A/B‑экспериментов.",
@@ -74,4 +73,3 @@ def experiments_stats(database: Session = Depends(db.get_db)):
     for row in rows:
         stats[row.experiment_key][row.option_value] += 1
     return stats
-

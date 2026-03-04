@@ -10,4 +10,3 @@ class ExperimentAssignment(Base):
     device_token = Column(String(128), index=True, nullable=False)
     experiment_key = Column(String(64), nullable=False)
     option_value = Column(String(64), nullable=False)
-

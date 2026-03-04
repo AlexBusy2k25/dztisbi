@@ -4,7 +4,6 @@ from sqlalchemy.orm import Session
 
 from . import db, models, schemas
 
-
 app = FastAPI(
     title="PyShop Checks Service",
     description="Упрощённый сервис генерации чеков (по мотивам тестового PyShop).",
@@ -60,10 +59,7 @@ def create_order_checks(
     for item in checks:
         database.refresh(item)
 
-    return [
-        schemas.CheckResponse.model_validate(check)
-        for check in checks
-    ]
+    return [schemas.CheckResponse.model_validate(check) for check in checks]
 
 
 @app.get("/checks/", response_model=list[schemas.CheckResponse])
@@ -71,4 +67,3 @@ def list_checks(database: Session = Depends(db.get_db)):
     stmt = select(models.Check).order_by(models.Check.created_at.desc())
     records = database.execute(stmt).scalars().all()
     return [schemas.CheckResponse.model_validate(check) for check in records]
-

@@ -29,4 +29,3 @@ class Check(Base):
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     printer = relationship("Printer", back_populates="checks")
-
